@@ -127,3 +127,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# idl plots
+idl_plots/
+
+# large data
+data/fulldata_*.csv
+
+# field model plots
+output/field_tracing_plots/
+
