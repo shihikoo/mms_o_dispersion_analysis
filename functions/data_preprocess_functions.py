@@ -90,11 +90,14 @@ def preprocess_dispersion_list(dispersion_list):
 
     return(dispersion_list)
 
-def extract_dispersions(data):
+def extract_dispersions(data, save_to_filename = 'output/dispersion_list.csv'):
     dispersion_para = extract_dispersion_list(data, direction_name = 'PARA')
     dispersion_anti = extract_dispersion_list(data, direction_name = 'ANTI')
     dispersion_list = pd.concat([dispersion_para,dispersion_anti],ignore_index = True)  
     
     dispersion_list = preprocess_dispersion_list(dispersion_list)
+    
+    dispersion_list.to_csv(save_to_filename)
+    
     return(dispersion_list)
 
