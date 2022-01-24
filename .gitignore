@@ -132,7 +132,7 @@ dmypy.json
 idl_plots/
 
 # large data
-data/fulldata_*.csv
+data/*fulldata_*.csv
 
 # field model plots
 output/field_tracing_plots/

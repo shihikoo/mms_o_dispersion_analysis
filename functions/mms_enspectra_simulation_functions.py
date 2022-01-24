@@ -156,9 +156,10 @@ def identify_dispersion(beam):
                 else:
                     nequal = nequal + 1
             else:      
-                if length > 3:
+                if length > 4:
                     ndisperison = ndisperison + 1
                     end_index = iindex - 1
+                    dispersion.loc[start_index:end_index, 'dispersion_length'] = length
                     dispersion.loc[start_index:end_index, 'energy_binned'] = beam.loc[start_index:end_index, 'energy_binned']
                     dispersion.loc[start_index:end_index, 'denergy'] = dispersion.loc[start_index:end_index, 'energy_binned'].apply(find_denergy)
                     dispersion.loc[start_index:end_index, 'ndisperison'] = ndisperison
@@ -177,9 +178,11 @@ def identify_dispersion(beam):
                     end_index = -1
                     nequal = 0
     
-    if start_index != -1 & length > 3:
+    if start_index != -1 & length > 4:
         ndisperison = ndisperison + 1
         end_index = iindex
+        dispersion.loc[start_index:end_index, 'dispersion_length'] = length
+
         dispersion.loc[start_index:end_index, 'energy_binned'] = beam.loc[start_index:end_index, 'energy_binned']
         dispersion.loc[start_index:end_index, 'denergy'] = dispersion.loc[start_index:end_index, 'energy_binned'].apply(find_denergy)
         dispersion.loc[start_index:end_index, 'ndisperison'] = ndisperison

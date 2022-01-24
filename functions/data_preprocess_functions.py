@@ -86,7 +86,7 @@ def preprocess_dispersion_list(dispersion_list):
 
     dispersion_list.loc[((dispersion_list['GSM_X'] < -1) & (((dispersion_list['direction'] == 'ANTI') & (dispersion_list['BX_GSM'] > 0)) | ((dispersion_list['direction'] == 'PARA') & (dispersion_list['BX_GSM'] < 0)))) | ((dispersion_list['GSM_X'] > -1) & (((dispersion_list['direction'] == 'PARA') & (dispersion_list['GSM_Z'] < 0)) | ((dispersion_list['direction'] == 'ANTI') & (dispersion_list['GSM_Z'] > 0)))) , 'direction_et'] = 'outward'
 
-    dispersion_list['dispersion_time'] = 5. * dispersion_list['dispersion_length']
+    dispersion_list['dispersion_time'] = 2. * dispersion_list['dispersion_length']
 
     return(dispersion_list)
 
