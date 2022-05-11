@@ -25,25 +25,26 @@ def extract_dispersion_list(mydata, direction_name = 'PARA'):
     energy_name = 'EN_' + direction_name
     chisq_name = 'DIS_FITTING_CHISQ_' + direction_name
     dof_name = 'DIS_FITTING_DOF_' + direction_name
+    rsquare_name = 'DIS_FITTING_RSQUARE_' + direction_name
     n_dispersion_name = 'N_DISPERSION_' + direction_name
     model_field_length_name = 'FLLEN_' + direction_name
     index = mydata.loc[:,estimated_distance_name].notna()
     mydata = mydata.loc[index,:]
        
     dispersion = mydata.groupby([estimated_distance_name,'date',  n_dispersion_name]).agg({'GSE_X':'count'
-                               , chisq_name:'mean', dof_name:'mean',  energy_name:'mean', model_field_length_name:'mean'
+                               , chisq_name:'mean', rsquare_name:'mean', dof_name:'mean',  energy_name:'mean', model_field_length_name:'mean'
                                , 'TIME':'mean', 'GSM_X':'mean', 'GSM_Y':'mean', 'GSM_Z':'mean', 'MLT':'median', 'L':'mean',  'STORM_PHASE':'max', 'BX_GSM':'mean'
                                , 'DIST':'mean', 'BETA':'mean', 'datetime_str':'min', 'KP':'mean', 'SW_P':'mean', 'DST':'mean', 'IMF_BY':'mean', 'IMF_BZ':'mean'
                                }).reset_index()
     
-    dispersion = dispersion.rename(columns={estimated_distance_name:'estimated_distance', n_dispersion_name:'n_dispersion', 'GSE_X':'dispersion_length',  chisq_name:'chisq', dof_name:'dof', energy_name:'energy',model_field_length_name:'model_field_line_length_idl'})
+    dispersion = dispersion.rename(columns={estimated_distance_name:'estimated_distance', n_dispersion_name:'n_dispersion', 'GSE_X':'dispersion_length',  chisq_name:'chisq', rsquare_name:'rsquare', dof_name:'dof', energy_name:'energy',model_field_length_name:'model_field_line_length_idl'})
 
     dispersion["direction"] = direction_name
 
     return(dispersion)
 
 def calculate_cdf(dispersion):
-    p = 1-stats.chi2.cdf(dispersion['chisq'], dispersion['dispersion_length']-2)
+    p = 1-stats.chi2.cdf(dispersion['chisq'], dispersion['dof'])
     return(p)
     
 def identify_region(onedata):
@@ -86,7 +87,7 @@ def preprocess_dispersion_list(dispersion_list):
 
     dispersion_list.loc[((dispersion_list['GSM_X'] < -1) & (((dispersion_list['direction'] == 'ANTI') & (dispersion_list['BX_GSM'] > 0)) | ((dispersion_list['direction'] == 'PARA') & (dispersion_list['BX_GSM'] < 0)))) | ((dispersion_list['GSM_X'] > -1) & (((dispersion_list['direction'] == 'PARA') & (dispersion_list['GSM_Z'] < 0)) | ((dispersion_list['direction'] == 'ANTI') & (dispersion_list['GSM_Z'] > 0)))) , 'direction_et'] = 'outward'
 
-    dispersion_list['dispersion_time'] = 2. * dispersion_list['dispersion_length']
+    dispersion_list['dispersion_time'] = 2. * (dispersion_list['dof']+2)
 
     return(dispersion_list)
 
