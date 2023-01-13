@@ -43,7 +43,7 @@ def extract_dispersion_list(mydata, direction_name = 'PARA'):
 
     return(dispersion)
 
-def calculate_cdf(dispersion):
+def calculate_ccooked_data(dispersion):
     p = 1-stats.chi2.cdf(dispersion['chisq'], dispersion['dof'])
     return(p)
     
@@ -66,16 +66,88 @@ def calculate_velocity(energy, ion_mass = 15.89):
     electron_charge = 1.60217662e-19  #coulombs
     velocity = math.sqrt(2.*energy*electron_charge/(ion_mass/Avogadro_constant/1e3))/1e3 # 4.577e7*sqrt(data_energy/1e3/AMU) 
     return(velocity)
-    
-    
+        
 def preprocess_data(data):
     cooked_data = data
     cooked_data['datetime_str'] = data.loc[:,'TIME'].apply(datetime.datetime.utcfromtimestamp)
-    cooked_data['date'] = data.loc[:,'datetime_str'].apply(extract_date)
+    cooked_data['date'] = data.loc[:,'datetime_str'].apply(extract_date)   
+    cooked_data['year'] = cooked_data['datetime_str'].dt.to_period('Y')   
+    cooked_data['pitch angle'] = pd.concat([cooked_data['PA_PARA'] ,cooked_data['PA_ANTI']],ignore_index = True)
+
+    cooked_data['bx'] = pd.concat([cooked_data['BX_GSM'] ,cooked_data['BX_GSM']],ignore_index = True)
+    
+    cooked_data['dist'] = pd.concat([data['DIST'] ,data['DIST']],ignore_index = True)
+    cooked_data['xgsm'] = pd.concat([data['GSM_X'] ,data['GSM_X']],ignore_index = True)
+    cooked_data['ygsm'] = pd.concat([data['GSM_Y'] ,data['GSM_Y']],ignore_index = True)
+    cooked_data['zgsm'] = pd.concat([data['GSM_Z'] ,data['GSM_Z']],ignore_index = True)
+    cooked_data['beta'] = pd.concat([data['BETA'] ,data['BETA']],ignore_index = True)
+    cooked_data['imfBy'] = pd.concat([data['IMF_BY_PARA'] ,data['IMF_BY_ANTI']],ignore_index = True)
+    cooked_data['imfBz'] = pd.concat([data['IMF_BZ_PARA'] ,data['IMF_BZ_ANTI']],ignore_index = True)
+    cooked_data['storm_phase'] = pd.concat([data['STORM_PHASE'] ,data['STORM_PHASE']],ignore_index = True)
+    cooked_data['velocity_o_all'] = pd.concat([data['O_V'] ,data['O_V']],ignore_index = True)
+    cooked_data['v_par_all'] = pd.concat([data['O_VPAR'] ,data['O_VPAR']],ignore_index = True)
+    cooked_data['v_perp_all'] = pd.concat([data['O_VPERP'] ,data['O_VPERP']],ignore_index = True)
+    cooked_data['density_o_all'] = pd.concat([data['O_N'] ,data['O_N']],ignore_index = True)
+    cooked_data['pressure_o_all'] = pd.concat([data['O_P'] ,data['O_P']],ignore_index = True)
+    cooked_data['density_h_all'] = pd.concat([data['H_N'] ,data['H_N']],ignore_index = True)
+    cooked_data['swp'] = pd.concat([data['SW_P_PARA'] ,data['SW_P_ANTI']],ignore_index = True)
+    cooked_data['swv'] = pd.concat([data['SW_V_PARA'] ,data['SW_V_ANTI']],ignore_index = True)
+    cooked_data['kp'] = pd.concat([data['KP'] ,data['KP']],ignore_index = True)
+    cooked_data['dst'] = pd.concat([data['DST'] ,data['DST']],ignore_index = True)
+    cooked_data['year'] = cooked_data['datetime_str'].dt.to_period('Y')
+    
+    cooked_data['storm'] = cooked_data['STORM_PHASE'] > 0
+    cooked_data['kp_gt_2'] = cooked_data['KP'] > 2 
+    cooked_data['storm_phase'] = pd.Categorical(cooked_data['STORM_PHASE']).rename_categories({0:'nonstorm',1:'prestorm',2:'main phase',3:'fast recovery', 4:'long recovery'})
+
+    cooked_data.loc[cooked_data['BETA'] < 0.05,'region'] = 'lobe'
+    cooked_data.loc[(cooked_data['BETA'] < 1) & (cooked_data['BETA'] >= 0.05),'region'] = 'bl'
+    cooked_data.loc[cooked_data['BETA'] >= 1,'region'] = 'ps'
+
+    cooked_data['compression_mode'] = (cooked_data['datetime_str'] < pd.Timestamp('2019-4-16')) | (cooked_data['datetime_str'] > pd.Timestamp('2019-8-17'))
+
+    cooked_data['start_time'] = (((cooked_data['datetime_str'].dt.hour/4).apply(int)))*4
+    cooked_data['end_time'] = cooked_data['start_time'] + 4
+    cooked_data['start_time_dt'] = cooked_data['datetime_str'].apply(datetime.datetime.combine,time=datetime.time.min) + cooked_data['start_time'].apply(pd.Timedelta,unit="h")
+    cooked_data['end_time_dt'] = cooked_data['datetime_str'].apply(datetime.datetime.combine,time=datetime.time.min) + cooked_data['end_time'].apply(pd.Timedelta,unit="h")
+
+    cooked_data['o_beam_filepath'] = 'idl_plots/obeam_day/'+cooked_data['start_time_dt'].apply(pd.Timestamp.strftime,format='%Y') +'/o_beam' + cooked_data['start_time_dt'].apply(pd.Timestamp.strftime,format='%Y%m%d_%H%M%S') +'_to_' + cooked_data['end_time_dt'].apply(pd.Timestamp.strftime,format='%Y%m%d_%H%M%S') + '_plasma_condition_short.png'
+
+    index = (cooked_data['DIST'] >= 7) & (cooked_data['DIST'] < 9)
+    cooked_data.loc[index,'dist_region'] = 'near'
+    index = cooked_data['DIST'] >= 9
+    cooked_data.loc[index,'dist_region'] = 'tail'
+
+    index = ((cooked_data['GSM_X'] > -1) & (cooked_data['GSM_Z'] < 0)) | ((cooked_data['GSM_X'] < -1) & (cooked_data['BX_GSM'] < 0))
+    cooked_data.loc[index,'hemi'] = 'south'
+    index = ((cooked_data['GSM_X'] > -1) & (cooked_data['GSM_Z'] > 0)) | ((cooked_data['GSM_X'] < -1) & (cooked_data['BX_GSM'] > 0))
+    cooked_data.loc[index,'hemi'] = 'north'
+
+    cooked_data.loc[:, 'flag'] = 0
+    index = ((cooked_data['hemi'] == 'south') & (data['FLAG_PARA'] == 1))
+    cooked_data.loc[index, 'flag'] = 1
+    cooked_data.loc[index, 'flux'] = data['FLUX_PARA']
+    cooked_data.loc[index, 'energy'] = data['EN_PARA']
+    cooked_data.loc[index, 'eflux'] = data['EFLUX_PARA']
+    cooked_data.loc[index, 'imfBy'] = data['IMF_BY_PARA']
+    cooked_data.loc[index, 'imfBz'] = data['IMF_BZ_PARA']
+
+    index = ((cooked_data['hemi'] == 'north') & (data['FLAG_ANTI'] == 1))
+    cooked_data.loc[index, 'flag'] = -1
+    cooked_data.loc[index, 'flux'] = data['FLUX_ANTI']
+    cooked_data.loc[index, 'energy'] = data['EN_ANTI']
+    cooked_data.loc[index, 'eflux'] = data['EFLUX_ANTI']
+    cooked_data.loc[index, 'imfBy'] = data['IMF_BY_ANTI']
+    cooked_data.loc[index, 'imfBz'] = data['IMF_BZ_ANTI']
+
+    cooked_data['energy_int'] = round(cooked_data['energy'])
+
+    cooked_data = cooked_data.sort_values(by=['datetime_str'])
+
     return(cooked_data)
 
 def preprocess_dispersion_list(dispersion_list):
-    dispersion_list['p_value'] = dispersion_list.apply(calculate_cdf,axis = 1)
+    dispersion_list['p_value'] = dispersion_list.apply(calculate_ccooked_data,axis = 1)
     dispersion_list['region'] = dispersion_list.apply(identify_region, axis=1)
 
     dispersion_list['index'] = dispersion_list.index
