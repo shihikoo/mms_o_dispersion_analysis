@@ -43,7 +43,7 @@ def extract_dispersion_list(mydata, direction_name = 'PARA'):
 
     return(dispersion)
 
-def calculate_ccooked_data(dispersion):
+def calculate_cooked_data(dispersion):
     p = 1-stats.chi2.cdf(dispersion['chisq'], dispersion['dof'])
     return(p)
     
@@ -60,7 +60,9 @@ def identify_region(onedata):
             
     return(region)
     
-    
+def calculate_B(onedata):
+    return(math.sqrt(onedata['BX_GSM']**2 + onedata['BY_GSM']**2 + onedata['BZ_GSM']**2))
+
 def calculate_velocity(energy, ion_mass = 15.89):
     Avogadro_constant = 6.02214086e23 # moe-1
     electron_charge = 1.60217662e-19  #coulombs
@@ -99,10 +101,12 @@ def preprocess_data(data):
     cooked_data['storm'] = cooked_data['STORM_PHASE'] > 0
     cooked_data['kp_gt_2'] = cooked_data['KP'] > 2 
     cooked_data['storm_phase'] = pd.Categorical(cooked_data['STORM_PHASE']).rename_categories({0:'nonstorm',1:'prestorm',2:'main phase',3:'fast recovery', 4:'long recovery'})
+    
+    cooked_data['region'] = cooked_data.apply(identify_region, axis=1)
 
-    cooked_data.loc[cooked_data['BETA'] < 0.05,'region'] = 'lobe'
-    cooked_data.loc[(cooked_data['BETA'] < 1) & (cooked_data['BETA'] >= 0.05),'region'] = 'bl'
-    cooked_data.loc[cooked_data['BETA'] >= 1,'region'] = 'ps'
+#    cooked_data.loc[cooked_data['BETA'] < 0.05,'region'] = 'lobe'
+#    cooked_data.loc[(cooked_data['BETA'] < 1) & (cooked_data['BETA'] >= 0.05),'region'] = 'bl'
+#    cooked_data.loc[cooked_data['BETA'] >= 1,'region'] = 'ps'
 
     cooked_data['compression_mode'] = (cooked_data['datetime_str'] < pd.Timestamp('2019-4-16')) | (cooked_data['datetime_str'] > pd.Timestamp('2019-8-17'))
 
@@ -111,7 +115,7 @@ def preprocess_data(data):
     cooked_data['start_time_dt'] = cooked_data['datetime_str'].apply(datetime.datetime.combine,time=datetime.time.min) + cooked_data['start_time'].apply(pd.Timedelta,unit="h")
     cooked_data['end_time_dt'] = cooked_data['datetime_str'].apply(datetime.datetime.combine,time=datetime.time.min) + cooked_data['end_time'].apply(pd.Timedelta,unit="h")
 
-    cooked_data['o_beam_filepath'] = 'idl_plots/obeam_day/'+cooked_data['start_time_dt'].apply(pd.Timestamp.strftime,format='%Y') +'/o_beam' + cooked_data['start_time_dt'].apply(pd.Timestamp.strftime,format='%Y%m%d_%H%M%S') +'_to_' + cooked_data['end_time_dt'].apply(pd.Timestamp.strftime,format='%Y%m%d_%H%M%S') + '_plasma_condition_short.png'
+    cooked_data['o_beam_filepath'] = 'obeam_day/'+cooked_data['start_time_dt'].apply(pd.Timestamp.strftime,format='%Y') +'/o_beam' + cooked_data['start_time_dt'].apply(pd.Timestamp.strftime,format='%Y%m%d_%H%M%S') +'_to_' + cooked_data['end_time_dt'].apply(pd.Timestamp.strftime,format='%Y%m%d_%H%M%S') + '_plasma_condition_short.png'
 
     index = (cooked_data['DIST'] >= 7) & (cooked_data['DIST'] < 9)
     cooked_data.loc[index,'dist_region'] = 'near'
@@ -146,8 +150,21 @@ def preprocess_data(data):
 
     return(cooked_data)
 
+def aggregate_energy(mydata):      
+    agg_data = mydata.groupby(['TIME']).agg({'GSE_X':'count' ,'date':'min', 'flux':'sum', 'eflux':'sum'
+                                             , 'energy':'mean', 'xgsm':'min', 'ygsm':'min', 'zgsm':'min'
+                                             , 'MLT':'min', 'L':'min',  'BX_GSM':'min' , 'BY_GSM':'min' 
+                                             ,'BZ_GSM':'min', 'DIST':'min', 'BETA':'min', 'datetime_str':'min'
+                                             , 'KP':'min', 'SW_P':'min', 'DST':'min', 'imfBy':'min', 'imfBz':'min'
+                                             , 'BX_GSM':'min', 'BY_GSM':'min', 'BZ_GSM':'min'}).reset_index()
+    
+    agg_data['region'] = agg_data.apply(identify_region, axis=1)
+    agg_data['B'] = agg_data.apply(calculate_B, axis=1)
+
+    return(agg_data)
+
 def preprocess_dispersion_list(dispersion_list):
-    dispersion_list['p_value'] = dispersion_list.apply(calculate_ccooked_data,axis = 1)
+    dispersion_list['p_value'] = dispersion_list.apply(calculate_cooked_data,axis = 1)
     dispersion_list['region'] = dispersion_list.apply(identify_region, axis=1)
 
     dispersion_list['index'] = dispersion_list.index
