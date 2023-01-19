@@ -11,6 +11,18 @@ from scipy import stats
 import math
 import datetime as datetime
 import pandas as pd
+import numpy as np
+
+MMS_ENERGY_BIN = np.array([1.8099999, 3.5100000,6.7700000, 13.120000, 25.410000, 49.200001, 95.239998, 184.38000,356.97000, 691.10999,1338.0400,2590.4900, 5015.2900, 9709.7900, 18798.590, 32741.160])
+MMS_ENERGY_BIN_INT = np.round(MMS_ENERGY_BIN)
+np.array([2, 4, 7, 13, 25, 49, 95, 184,357, 691,1338,2590, 5015, 9710, 18799, 32741])
+MMS_ENERGY_HIGH = np.array([2.42, 4.61, 8.91, 17.31, 33.50, 64.90, 125.59, 243.16, 470.80, 911.43, 1764.61, 3416.33, 6614.20, 12805.39, 24791.79, 41598.37])
+MMS_ENERGY_LOW = np.array([1.27, 2.42, 4.61, 8.91, 17.31, 33.50, 64.90, 125.59, 243.16, 470.80, 911.43, 1764.61, 3416.33, 6614.20, 12805.39, 24791.79])
+MMS_DENERGY = np.array([0.5,1,1.91,3.71,7.18,13.92,26.93,52.15,100.97,195.42,378.36,732.53,1418.24,2745.8,5315.99,6713.96])
+
+PA_BIN_SIZE = 22.5
+PI = 3.1415926
+
 
 def extract_date(input_datetime_obj):
     date = input_datetime_obj.strftime("%Y-%m-%d")
@@ -59,7 +71,11 @@ def identify_region(onedata):
             region = 'PS'
             
     return(region)
-    
+
+def closest(lst, K):
+     
+    return lst[min(range(len(lst)), key = lambda i: abs(lst[i]-K))]
+
 def calculate_B(onedata):
     return(math.sqrt(onedata['BX_GSM']**2 + onedata['BY_GSM']**2 + onedata['BZ_GSM']**2))
 
@@ -68,7 +84,17 @@ def calculate_velocity(energy, ion_mass = 15.89):
     electron_charge = 1.60217662e-19  #coulombs
     velocity = math.sqrt(2.*energy*electron_charge/(ion_mass/Avogadro_constant/1e3))/1e3 # 4.577e7*sqrt(data_energy/1e3/AMU) 
     return(velocity)
-        
+def find_denergy(energy_int):
+    energy_int = closest(MMS_ENERGY_BIN_INT, energy_int)
+    
+    if energy_int is not None:
+        de = MMS_DENERGY[MMS_ENERGY_BIN_INT == energy_int]
+        if len(de) == 0:
+            print(energy_int)
+        return(de[0])
+    else:
+        return(None)
+    
 def preprocess_data(data):
     cooked_data = data
     cooked_data['datetime_str'] = data.loc[:,'TIME'].apply(datetime.datetime.utcfromtimestamp)
@@ -135,6 +161,8 @@ def preprocess_data(data):
     cooked_data.loc[index, 'eflux'] = data['EFLUX_PARA']
     cooked_data.loc[index, 'imfBy'] = data['IMF_BY_PARA']
     cooked_data.loc[index, 'imfBz'] = data['IMF_BZ_PARA']
+    cooked_data.loc[index, 'pa'] = data['PA_PARA']
+
 
     index = ((cooked_data['hemi'] == 'north') & (data['FLAG_ANTI'] == 1))
     cooked_data.loc[index, 'flag'] = -1
@@ -143,24 +171,35 @@ def preprocess_data(data):
     cooked_data.loc[index, 'eflux'] = data['EFLUX_ANTI']
     cooked_data.loc[index, 'imfBy'] = data['IMF_BY_ANTI']
     cooked_data.loc[index, 'imfBz'] = data['IMF_BZ_ANTI']
+    cooked_data.loc[index, 'pa'] = data['PA_ANTI']
 
     cooked_data['energy_int'] = round(cooked_data['energy'])
+    
+    cooked_data['denergy'] = cooked_data['energy_int'].apply(find_denergy)
 
+    cooked_data['intergrated_flux'] =  cooked_data['flux'] * cooked_data['denergy']* 2*PI * (PI/8)
+    
     cooked_data = cooked_data.sort_values(by=['datetime_str'])
-
+    
     return(cooked_data)
 
-def aggregate_energy(mydata):      
-    agg_data = mydata.groupby(['TIME']).agg({'GSE_X':'count' ,'date':'min', 'flux':'sum', 'eflux':'sum'
-                                             , 'energy':'mean', 'xgsm':'min', 'ygsm':'min', 'zgsm':'min'
-                                             , 'MLT':'min', 'L':'min',  'BX_GSM':'min' , 'BY_GSM':'min' 
-                                             ,'BZ_GSM':'min', 'DIST':'min', 'BETA':'min', 'datetime_str':'min'
-                                             , 'KP':'min', 'SW_P':'min', 'DST':'min', 'imfBy':'min', 'imfBz':'min'
-                                             , 'BX_GSM':'min', 'BY_GSM':'min', 'BZ_GSM':'min'}).reset_index()
+def aggregate_energy(df):      
     
+    df = df.loc[(df.loc[:,'energy']).apply(np.isfinite),:]
+    
+    agg_data = df.groupby(['TIME']).agg({'GSE_X':'count' ,'date':'min', 'flux':'sum', 'eflux':'sum'
+                                         , 'energy':'mean',  'denergy':'mean', 'intergrated_flux':'sum'
+                                         , 'xgsm':'min', 'ygsm':'min', 'zgsm':'min', 'pa':'mean'
+                                         , 'MLT':'min', 'L':'min',  'BX_GSM':'min' , 'BY_GSM':'min' 
+                                         ,'BZ_GSM':'min', 'DIST':'min', 'BETA':'min', 'datetime_str':'min'
+                                         , 'KP':'min', 'SW_P':'min', 'DST':'min', 'imfBy':'min', 'imfBz':'min'
+                                         , 'BX_GSM':'min', 'BY_GSM':'min', 'BZ_GSM':'min'}).reset_index()
+
     agg_data['region'] = agg_data.apply(identify_region, axis=1)
     agg_data['B'] = agg_data.apply(calculate_B, axis=1)
 
+    agg_data.rename(columns={'GSE_X':'nbeam'}, inplace = True)
+    
     return(agg_data)
 
 def preprocess_dispersion_list(dispersion_list):
