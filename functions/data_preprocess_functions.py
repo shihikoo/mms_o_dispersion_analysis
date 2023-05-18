@@ -22,7 +22,7 @@ MMS_ENERGY_HIGH = np.array([2.42, 4.61, 8.91, 17.31, 33.50, 64.90, 125.59, 243.1
 MMS_ENERGY_LOW = np.array([1.27, 2.42, 4.61, 8.91, 17.31, 33.50, 64.90, 125.59, 243.16, 470.80, 911.43, 1764.61, 3416.33, 6614.20, 12805.39, 24791.79])
 MMS_DENERGY = np.array([0.5,1,1.91,3.71,7.18,13.92,26.93,52.15,100.97,195.42,378.36,732.53,1418.24,2745.8,5315.99,6713.96])
 
-PA_BIN_SIZE = 22.5
+PA_BIN_SIZE = 11.25
 PI = 3.1415926
 
 def remove_outside_data(df):
@@ -32,15 +32,21 @@ def remove_outside_data(df):
 def read_beam_csv(beam_filenames):
     nbatch = 800
     
-    df_beam1 = read_multiple_csv(beam_filenames[0:nbatch])
-    ind = (df_beam1['Flux_para'] > 0) | (df_beam1['Flux_anti'] > 0)
-    df_beam1 = df_beam1.loc[ind,:]
-    
-    df_beam2 = read_multiple_csv(beam_filenames[800:len(beam_filenames)])
-    ind = (df_beam2['Flux_para'] > 0) | (df_beam2['Flux_anti'] > 0)
-    df_beam2 = df_beam2.loc[ind,:]
-    
-    df_beam = df_beam1.append(df_beam2, ignore_index = True) 
+    if len(beam_filenames) < nbatch:
+        df_beam = read_multiple_csv(beam_filenames[0:nbatch])
+        ind = (df_beam['Flux_para'] > 0) | (df_beam['Flux_anti'] > 0)
+        df_beam = df_beam.loc[ind,:]
+        
+    else:
+        df_beam1 = read_multiple_csv(beam_filenames[0:nbatch])
+        ind = (df_beam1['Flux_para'] > 0) | (df_beam1['Flux_anti'] > 0)
+        df_beam1 = df_beam1.loc[ind,:]
+
+        df_beam2 = read_multiple_csv(beam_filenames[800:len(beam_filenames)])
+        ind = (df_beam2['Flux_para'] > 0) | (df_beam2['Flux_anti'] > 0)
+        df_beam2 = df_beam2.loc[ind,:]
+
+        df_beam = df_beam1.append(df_beam2, ignore_index = True) 
     
     df_beam = df_beam.rename(columns=str.upper)
     
@@ -50,6 +56,7 @@ def read_beam_csv(beam_filenames):
     return df_beam
 
 def read_from_raw_csv(beam_filenames, ext_filenames):
+    
     df_beam = read_beam_csv(beam_filenames)
     df_ext = read_external_csv(ext_filenames)
     
@@ -68,10 +75,8 @@ def read_external_csv(external_filenames):
 
     return df_ext
 
-
 def read_multiple_csv(filenames):    
     li = []
-
     for filename in filenames:
         df = pd.read_csv(filename, index_col=None, header=0)
         li.append(df)
@@ -244,7 +249,6 @@ def preprocess_data(data):
     cooked_data['r'] =  (cooked_data['ygsm']**2 + cooked_data['zgsm']**2).apply(math.sqrt)
 
     cooked_data = remove_outside_data(cooked_data)
-
     
     cooked_data = cooked_data.sort_values(by=['datetime_str'])
     
@@ -257,7 +261,7 @@ def aggregate_angle(df):
     df = df.loc[(df.loc[:,'pa']).apply(np.isfinite),:]
     
     agg_data = df.groupby(['time','energy']).agg({'xgse':'count' ,'date':'min', 'datetime_str':'min'
-                                                  , 'pa':'mean','pa_range':'mean'
+                                                  , 'pa':'mean','pa_range':'mean','int_flux':'mean'
                                                   , 'flux':'sum', 'eflux':'sum', 'intergrated_flux':'sum', 'density_est':'sum'
                                                   , 'denergy':'mean','r':'mean'
                                                   , 'xgsm':'min', 'ygsm':'min', 'zgsm':'min'
@@ -265,6 +269,7 @@ def aggregate_angle(df):
                                                   ,  'bx':'min' , 'BY_GSM':'min','BZ_GSM':'min'
                                                   , 'dist':'min', 'beta':'min'
                                                   , 'kp':'min', 'swp':'min', 'dst':'min', 'imfBy':'min', 'imfBz':'min'
+                                                  ,'density_o_all':'mean'
                                                   , 'density_h_all':'mean', 'velocity_h_all':'mean'}).reset_index()
 
 #     agg_data['region'] = agg_data.apply(identify_region, axis=1)
@@ -278,13 +283,14 @@ def aggregate_energy(df):
     
     df = df.loc[(df.loc[:,'energy']).apply(np.isfinite),:]
     
-    agg_data = df.groupby(['time']).agg({'nbeam':'sum' ,'date':'min', 'flux':'sum', 'eflux':'sum'
+    agg_data = df.groupby(['time']).agg({'nbeam':'sum' ,'date':'min', 'flux':'sum', 'eflux':'sum','int_flux':'mean'
                                          , 'energy':'mean',  'denergy':'mean', 'intergrated_flux':'sum', 'density_est':'sum'
                                          , 'xgsm':'min', 'ygsm':'min', 'zgsm':'min', 'ygse':'min', 'zgse':'min'
                                          , 'pa':'mean', 'pa_range':'mean','r':'mean'
                                          , 'mlt':'min', 'L':'min',  'bx':'min' , 'BY_GSM':'min' 
                                          , 'BZ_GSM':'min', 'dist':'min', 'beta':'min', 'datetime_str':'min'
                                          , 'kp':'min', 'swp':'min', 'dst':'min', 'imfBy':'min', 'imfBz':'min'
+                                         ,'density_o_all':'mean'
                                          , 'density_h_all':'mean', 'velocity_h_all':'mean'}).reset_index()
     agg_data['location'] = agg_data.apply(identify_location, axis=1)
     agg_data['region'] = agg_data.apply(identify_region, axis=1)
@@ -349,5 +355,4 @@ def extract_dispersions(data, save_to_filename = 'output/dispersion_list.csv'):
     dispersion_list.to_csv(save_to_filename)
     
     return(dispersion_list)
-
 
