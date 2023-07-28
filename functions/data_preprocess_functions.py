@@ -102,11 +102,11 @@ def extract_dispersion_list(mydata, direction_name = 'PARA'):
     model_field_length_name = 'FLLEN_' + direction_name
     index = mydata.loc[:,estimated_distance_name].notna()
     mydata = mydata.loc[index,:]
-       
+    
     dispersion = mydata.groupby([estimated_distance_name,'date',  n_dispersion_name]).agg({'xgse':'count'
                                , chisq_name:'mean', rsquare_name:'mean', dof_name:'mean',  energy_name:'mean', model_field_length_name:'mean'
                                , 'time':'mean', 'xgsm':'mean', 'ygsm':'mean', 'zgsm':'mean', 'MLT':'median', 'L':'mean',  'STORM_PHASE':'max', 'bx':'mean'
-                               , 'dist':'mean', 'beta':'mean', 'datetime_str':'min', 'kp':'mean', 'swp':'mean', 'dst':'mean', 'IMF_BY':'mean', 'IMF_BZ':'mean'
+                               , 'dist':'mean', 'beta':'mean', 'datetime_str':'min', 'kp':'mean', 'swp':'mean', 'dst':'mean', 'IMF_BY':'mean', 'IMF_BZ':'mean','
                                }).reset_index()
     
     dispersion = dispersion.rename(columns={estimated_distance_name:'estimated_distance', n_dispersion_name:'n_dispersion', 'GSE_X':'dispersion_length',  chisq_name:'chisq', rsquare_name:'rsquare', dof_name:'dof', energy_name:'energy',model_field_length_name:'model_field_line_length_idl'})
@@ -115,7 +115,7 @@ def extract_dispersion_list(mydata, direction_name = 'PARA'):
 
     return(dispersion)
 
-def calculate_cooked_data(dispersion):
+def calculate_pvalue(dispersion):
     p = 1-stats.chi2.cdf(dispersion['chisq'], dispersion['dof'])
     return(p)
 
@@ -257,7 +257,6 @@ def preprocess_data(data):
     return(cooked_data)
 
 def aggregate_angle(df):      
-    
     df = df.loc[(df.loc[:,'pa']).apply(np.isfinite),:]
     
     agg_data = df.groupby(['time','energy']).agg({'xgse':'count' ,'date':'min', 'datetime_str':'min'
@@ -271,10 +270,6 @@ def aggregate_angle(df):
                                                   , 'kp':'min', 'swp':'min', 'dst':'min', 'imfBy':'min', 'imfBz':'min'
                                                   ,'density_o_all':'mean'
                                                   , 'density_h_all':'mean', 'velocity_h_all':'mean'}).reset_index()
-
-#     agg_data['region'] = agg_data.apply(identify_region, axis=1)
-#     agg_data['B'] = agg_data.apply(calculate_B, axis=1)
-
     agg_data.rename(columns={'xgse':'nbeam'}, inplace = True)
     
     return(agg_data)
@@ -329,7 +324,7 @@ def calculate_occurrence_rate(varx, vary, xedges, yedges):
     return output    
 
 def preprocess_dispersion_list(dispersion_list):
-    dispersion_list['p_value'] = dispersion_list.apply(calculate_cooked_data,axis = 1)
+    dispersion_list['p_value'] = dispersion_list.apply(calculate_pvalue,axis = 1)
     dispersion_list['region'] = dispersion_list.apply(identify_region, axis=1)
 
     dispersion_list['index'] = dispersion_list.index
