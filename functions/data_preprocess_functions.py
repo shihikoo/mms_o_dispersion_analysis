@@ -267,8 +267,9 @@ def aggregate_angle(df):
                                                   , 'ygse':'min', 'zgse':'min', 'mlt':'min', 'L':'min'
                                                   ,  'bx':'min' , 'BY_GSM':'min','BZ_GSM':'min'
                                                   , 'dist':'min', 'beta':'min'
-                                                  , 'kp':'min', 'swp':'min', 'dst':'min', 'imfBy':'min', 'imfBz':'min'
-                                                  ,'density_o_all':'mean'
+                                                  , 'kp':'min', 'swp':'min', 'swv':'min', 'dst':'min', 'imfBy':'min'
+                                                  , 'imfBz':'min', 'storm_phase':'min'
+                                                  ,'density_o_all':'mean', 'velocity_o_all':'mean','pressure_o_all':'mean'
                                                   , 'density_h_all':'mean', 'velocity_h_all':'mean'}).reset_index()
     agg_data.rename(columns={'xgse':'nbeam'}, inplace = True)
     
@@ -284,8 +285,9 @@ def aggregate_energy(df):
                                          , 'pa':'mean', 'pa_range':'mean','r':'mean'
                                          , 'mlt':'min', 'L':'min',  'bx':'min' , 'BY_GSM':'min' 
                                          , 'BZ_GSM':'min', 'dist':'min', 'beta':'min', 'datetime_str':'min'
-                                         , 'kp':'min', 'swp':'min', 'dst':'min', 'imfBy':'min', 'imfBz':'min'
-                                         ,'density_o_all':'mean'
+                                         , 'kp':'min', 'swp':'min','swv':'min', 'dst':'min'
+                                         , 'imfBy':'min', 'imfBz':'min', 'storm_phase':'min'
+                                         ,'density_o_all':'mean', 'velocity_o_all':'mean','pressure_o_all':'mean'
                                          , 'density_h_all':'mean', 'velocity_h_all':'mean'}).reset_index()
     agg_data['location'] = agg_data.apply(identify_location, axis=1)
     agg_data['region'] = agg_data.apply(identify_region, axis=1)
