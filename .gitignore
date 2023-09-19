@@ -137,3 +137,4 @@ data/*fulldata_*.csv
 # field model plots
 output/field_tracing_plots/
 
+.DS_Store
