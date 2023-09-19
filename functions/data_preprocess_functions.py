@@ -106,7 +106,7 @@ def extract_dispersion_list(mydata, direction_name = 'PARA'):
     dispersion = mydata.groupby([estimated_distance_name,'date',  n_dispersion_name]).agg({'xgse':'count'
                                , chisq_name:'mean', rsquare_name:'mean', dof_name:'mean',  energy_name:'mean', model_field_length_name:'mean'
                                , 'time':'mean', 'xgsm':'mean', 'ygsm':'mean', 'zgsm':'mean', 'MLT':'median', 'L':'mean',  'STORM_PHASE':'max', 'bx':'mean'
-                               , 'dist':'mean', 'beta':'mean', 'datetime_str':'min', 'kp':'mean', 'swp':'mean', 'dst':'mean', 'IMF_BY':'mean', 'IMF_BZ':'mean','
+                               , 'dist':'mean', 'beta':'mean', 'datetime_str':'min', 'kp':'mean', 'swp':'mean', 'dst':'mean', 'IMF_BY':'mean', 'IMF_BZ':'mean'
                                }).reset_index()
     
     dispersion = dispersion.rename(columns={estimated_distance_name:'estimated_distance', n_dispersion_name:'n_dispersion', 'GSE_X':'dispersion_length',  chisq_name:'chisq', rsquare_name:'rsquare', dof_name:'dof', energy_name:'energy',model_field_length_name:'model_field_line_length_idl'})
@@ -267,8 +267,9 @@ def aggregate_angle(df):
                                                   , 'ygse':'min', 'zgse':'min', 'mlt':'min', 'L':'min'
                                                   ,  'bx':'min' , 'BY_GSM':'min','BZ_GSM':'min'
                                                   , 'dist':'min', 'beta':'min'
-                                                  , 'kp':'min', 'swp':'min', 'dst':'min', 'imfBy':'min', 'imfBz':'min'
-                                                  ,'density_o_all':'mean'
+                                                  , 'kp':'min', 'swp':'min', 'swv':'min', 'dst':'min', 'imfBy':'min'
+                                                  , 'imfBz':'min', 'storm_phase':'min'
+                                                  ,'density_o_all':'mean', 'velocity_o_all':'mean','pressure_o_all':'mean'
                                                   , 'density_h_all':'mean', 'velocity_h_all':'mean'}).reset_index()
     agg_data.rename(columns={'xgse':'nbeam'}, inplace = True)
     
@@ -284,8 +285,9 @@ def aggregate_energy(df):
                                          , 'pa':'mean', 'pa_range':'mean','r':'mean'
                                          , 'mlt':'min', 'L':'min',  'bx':'min' , 'BY_GSM':'min' 
                                          , 'BZ_GSM':'min', 'dist':'min', 'beta':'min', 'datetime_str':'min'
-                                         , 'kp':'min', 'swp':'min', 'dst':'min', 'imfBy':'min', 'imfBz':'min'
-                                         ,'density_o_all':'mean'
+                                         , 'kp':'min', 'swp':'min','swv':'min', 'dst':'min'
+                                         , 'imfBy':'min', 'imfBz':'min', 'storm_phase':'min'
+                                         ,'density_o_all':'mean', 'velocity_o_all':'mean','pressure_o_all':'mean'
                                          , 'density_h_all':'mean', 'velocity_h_all':'mean'}).reset_index()
     agg_data['location'] = agg_data.apply(identify_location, axis=1)
     agg_data['region'] = agg_data.apply(identify_region, axis=1)
