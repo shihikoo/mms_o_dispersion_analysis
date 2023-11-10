@@ -29,6 +29,13 @@ def remove_outside_data(df):
     new_df = df.loc[df['r'] <= 20,:].reindex()
     return new_df
 
+def read_dispersion_csv(dispersion_filenames):
+    df_dis = read_multiple_csv(dispersion_filenames)
+    
+    df_dis = df_dis.rename(columns=str.upper)
+
+    return df_dis
+
 def read_beam_csv(beam_filenames):
     nbatch = 800
     
@@ -91,29 +98,6 @@ def extract_date(input_datetime_obj):
 def extract_time(input_datetime_obj):
     time = input_datetime_obj.strftime("%H-%M-%S")
     return(time)
-    
-def extract_dispersion_list(mydata, direction_name = 'PARA'):
-    estimated_distance_name = 'ESTIMATED_DISTANCE_' + direction_name
-    energy_name = 'EN_' + direction_name
-    chisq_name = 'DIS_FITTING_CHISQ_' + direction_name
-    dof_name = 'DIS_FITTING_DOF_' + direction_name
-    rsquare_name = 'DIS_FITTING_RSQUARE_' + direction_name
-    n_dispersion_name = 'N_DISPERSION_' + direction_name
-    model_field_length_name = 'FLLEN_' + direction_name
-    index = mydata.loc[:,estimated_distance_name].notna()
-    mydata = mydata.loc[index,:]
-    
-    dispersion = mydata.groupby([estimated_distance_name,'date',  n_dispersion_name]).agg({'xgse':'count'
-                               , chisq_name:'mean', rsquare_name:'mean', dof_name:'mean',  energy_name:'mean', model_field_length_name:'mean'
-                               , 'time':'mean', 'xgsm':'mean', 'ygsm':'mean', 'zgsm':'mean', 'MLT':'median', 'L':'mean',  'STORM_PHASE':'max', 'bx':'mean'
-                               , 'dist':'mean', 'beta':'mean', 'datetime_str':'min', 'kp':'mean', 'swp':'mean', 'dst':'mean', 'IMF_BY':'mean', 'IMF_BZ':'mean'
-                               }).reset_index()
-    
-    dispersion = dispersion.rename(columns={estimated_distance_name:'estimated_distance', n_dispersion_name:'n_dispersion', 'GSE_X':'dispersion_length',  chisq_name:'chisq', rsquare_name:'rsquare', dof_name:'dof', energy_name:'energy',model_field_length_name:'model_field_line_length_idl'})
-
-    dispersion["direction"] = direction_name
-
-    return(dispersion)
 
 def calculate_pvalue(dispersion):
     p = 1-stats.chi2.cdf(dispersion['chisq'], dispersion['dof'])
@@ -132,10 +116,17 @@ def identify_region(onedata):
     else:
         if onedata.beta < 0.05:
             region = 'Lobe'
-        elif onedata.beta < 1.:
-            region = 'BL'
+        elif onedata.r >= 15:
+            if onedata.beta < 1.:
+                region = 'BL'
+            else:
+                region = 'PS'
         else:
-            region = 'PS'
+            if onedata.beta > math.exp(0.14*onedata.r)-2.1:
+                region = 'BL'
+            else:
+                region = 'PS'             
+            
     return(region)
 
 def estimate_density(onedata):
@@ -171,7 +162,8 @@ def find_denergy(energy_int):
         return(de[0])
     else:
         return(None)
-    
+
+# this function is used to 
 def preprocess_data(data):
     cooked_data = data
     
@@ -186,6 +178,8 @@ def preprocess_data(data):
 
     cooked_data['storm_phase'] = pd.Categorical(cooked_data['STORM_PHASE']).rename_categories({0:'nonstorm',1:'prestorm',2:'main phase',3:'fast recovery', 4:'long recovery'})
     
+    cooked_data['r'] = (cooked_data['ygsm']**2 + cooked_data['zgsm']**2).apply(math.sqrt)
+
     cooked_data['region'] = cooked_data.apply(identify_region, axis=1)
 
     cooked_data['compression_mode'] = (cooked_data['datetime_str'] < pd.Timestamp('2019-4-16')) | (cooked_data['datetime_str'] > pd.Timestamp('2019-8-17'))
@@ -194,8 +188,10 @@ def preprocess_data(data):
     cooked_data['end_time'] = cooked_data['start_time'] + 4
     cooked_data['start_time_dt'] = cooked_data['datetime_str'].apply(datetime.datetime.combine,time=datetime.time.min) + cooked_data['start_time'].apply(pd.Timedelta,unit="h")
     cooked_data['end_time_dt'] = cooked_data['datetime_str'].apply(datetime.datetime.combine,time=datetime.time.min) + cooked_data['end_time'].apply(pd.Timedelta,unit="h")
+    
+    cooked_data['o_beam_filepath'] = 'plots/obeam_day/o_beam' + cooked_data['start_time_dt'].apply(pd.Timestamp.strftime,format='%Y%m%d_%H%M%S') +'_to_' + cooked_data['end_time_dt'].apply(pd.Timestamp.strftime,format='%Y%m%d_%H%M%S') + '_identification.png'
 
-    cooked_data['o_beam_filepath'] = 'obeam_day/'+cooked_data['start_time_dt'].apply(pd.Timestamp.strftime,format='%Y') +'/o_beam' + cooked_data['start_time_dt'].apply(pd.Timestamp.strftime,format='%Y%m%d_%H%M%S') +'_to_' + cooked_data['end_time_dt'].apply(pd.Timestamp.strftime,format='%Y%m%d_%H%M%S') + '_plasma_condition_short.png'
+#    cooked_data['o_beam_filepath'] = 'obeam_day/'+cooked_data['start_time_dt'].apply(pd.Timestamp.strftime,format='%Y') +'/o_beam' + cooked_data['start_time_dt'].apply(pd.Timestamp.strftime,format='%Y%m%d_%H%M%S') +'_to_' + cooked_data['end_time_dt'].apply(pd.Timestamp.strftime,format='%Y%m%d_%H%M%S') + '_plasma_condition_short.png'
 
     index = (cooked_data['dist'] >= 7) & (cooked_data['dist'] < 9)
     cooked_data.loc[index,'dist_region'] = 'near'
@@ -268,7 +264,8 @@ def aggregate_angle(df):
                                                   ,  'bx':'min' , 'BY_GSM':'min','BZ_GSM':'min'
                                                   , 'dist':'min', 'beta':'min'
                                                   , 'kp':'min', 'swp':'min', 'swv':'min', 'dst':'min', 'imfBy':'min'
-                                                  , 'imfBz':'min', 'storm_phase':'min'
+                                                  , 'imfBz':'min' , 'storm_phase':'first', 'compression_mode':'first'
+                                                  , 'year':'first'
                                                   ,'density_o_all':'mean', 'velocity_o_all':'mean','pressure_o_all':'mean'
                                                   , 'density_h_all':'mean', 'velocity_h_all':'mean'}).reset_index()
     agg_data.rename(columns={'xgse':'nbeam'}, inplace = True)
@@ -286,13 +283,16 @@ def aggregate_energy(df):
                                          , 'mlt':'min', 'L':'min',  'bx':'min' , 'BY_GSM':'min' 
                                          , 'BZ_GSM':'min', 'dist':'min', 'beta':'min', 'datetime_str':'min'
                                          , 'kp':'min', 'swp':'min','swv':'min', 'dst':'min'
-                                         , 'imfBy':'min', 'imfBz':'min', 'storm_phase':'min'
+                                         , 'imfBy':'min', 'imfBz':'min', 'storm_phase':'first', 'compression_mode':'first'
+                                         , 'year':'first'
                                          ,'density_o_all':'mean', 'velocity_o_all':'mean','pressure_o_all':'mean'
                                          , 'density_h_all':'mean', 'velocity_h_all':'mean'}).reset_index()
     agg_data['location'] = agg_data.apply(identify_location, axis=1)
     agg_data['region'] = agg_data.apply(identify_region, axis=1)
     agg_data['B'] = agg_data.apply(calculate_B, axis=1)
     
+    agg_data['year'] = agg_data['datetime_str'].dt.to_period('Y')
+
     return(agg_data)
 
 def calculate_density_heatmap(varx, vary, varz, xedges, yedges):
@@ -325,6 +325,7 @@ def calculate_occurrence_rate(varx, vary, xedges, yedges):
     output = output.T
     return output    
 
+# this function is for old data when dispersion is saved in beam data
 def preprocess_dispersion_list(dispersion_list):
     dispersion_list['p_value'] = dispersion_list.apply(calculate_pvalue,axis = 1)
     dispersion_list['region'] = dispersion_list.apply(identify_region, axis=1)
@@ -341,6 +342,29 @@ def preprocess_dispersion_list(dispersion_list):
     dispersion_list['dispersion_time'] = 2. * (dispersion_list['dof']+2)
 
     return(dispersion_list)
+
+def extract_dispersion_list(mydata, direction_name = 'PARA'):
+    estimated_distance_name = 'ESTIMATED_DISTANCE_' + direction_name
+    energy_name = 'EN_' + direction_name
+    chisq_name = 'DIS_FITTING_CHISQ_' + direction_name
+    dof_name = 'DIS_FITTING_DOF_' + direction_name
+    rsquare_name = 'DIS_FITTING_RSQUARE_' + direction_name
+    n_dispersion_name = 'N_DISPERSION_' + direction_name
+    model_field_length_name = 'FLLEN_' + direction_name
+    index = mydata.loc[:,estimated_distance_name].notna()
+    mydata = mydata.loc[index,:]
+    
+    dispersion = mydata.groupby([estimated_distance_name,'date',  n_dispersion_name]).agg({'xgse':'count'
+                               , chisq_name:'mean', rsquare_name:'mean', dof_name:'mean',  energy_name:'mean', model_field_length_name:'mean'
+                               , 'time':'mean', 'xgsm':'mean', 'ygsm':'mean', 'zgsm':'mean', 'MLT':'median', 'L':'mean',  'STORM_PHASE':'max', 'bx':'mean'
+                               , 'dist':'mean', 'beta':'mean', 'datetime_str':'min', 'kp':'mean', 'swp':'mean', 'dst':'mean', 'IMF_BY':'mean', 'IMF_BZ':'mean'
+                               }).reset_index()
+    
+    dispersion = dispersion.rename(columns={estimated_distance_name:'estimated_distance', n_dispersion_name:'n_dispersion', 'GSE_X':'dispersion_length',  chisq_name:'chisq', rsquare_name:'rsquare', dof_name:'dof', energy_name:'energy',model_field_length_name:'model_field_line_length_idl'})
+
+    dispersion["direction"] = direction_name
+
+    return(dispersion)
 
 def extract_dispersions(data, save_to_filename = 'output/dispersion_list.csv'):
     dispersion_para = extract_dispersion_list(data, direction_name = 'PARA')
