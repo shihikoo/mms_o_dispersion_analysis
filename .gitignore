@@ -138,3 +138,4 @@ data/*fulldata_*.csv
 output/field_tracing_plots/
 
 .DS_Store
+*.cdf

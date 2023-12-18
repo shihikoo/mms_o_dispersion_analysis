@@ -50,11 +50,11 @@ def setup_fig(xlim=(10,-30),ylim=(-20,20),xlabel='X GSM [Re]',ylabel='Z GSM [Re]
 
 def test_t89(data,i):
     idata = data.loc[i,:]
-    ut = idata["Time"]
+    ut = idata["time"]
     ps = geopack.recalc(ut)
-    xgsm = idata['GSM_X']
-    ygsm = idata['GSM_Y']
-    zgsm = idata['GSM_Z']
+    xgsm = idata['xgsm']
+    ygsm = idata['ygsm']
+    zgsm = idata['zgsm']
     kp = idata['kp']
     
     b0xgsm,b0ygsm,b0zgsm = geopack.igrf_gsm(xgsm,ygsm,zgsm)
@@ -110,12 +110,12 @@ def test_t04(data,i):
 
 def test_trace(data, i, model):
     idata = data.loc[i,:]
-    ut = idata["Time"]
+    ut = idata["time"]
     ps = geopack.recalc(ut)
-    xgsm = idata['GSM_X']
-    ygsm = idata['GSM_Y']
-    zgsm = idata['GSM_Z']
-    par = [idata['SW_p'], idata['Dst'], idata['IMF_Bz'],idata['IMF_By'],0.,0., ps, xgsm,ygsm,zgsm]
+    xgsm = idata['xgsm']
+    ygsm = idata['ygsm']
+    zgsm = idata['zgsm']
+    par = [idata['swp'], idata['dst'], idata['imfbz'],idata['imfby'],0.,0., ps, xgsm,ygsm,zgsm]
     dir = 1
     
     x,y,z,xx,yy,zz = geopack.trace(xgsm,ygsm,zgsm,dir=dir,rlim=100,r0=0.99999,parmod=par,exname = model,inname='igrf',maxloop=10000)
@@ -141,19 +141,15 @@ def calculate_fieldlineLen(time, xgsm,ygsm,zgsm, dir, kp, pdyn, dst, imfBz, imfB
         
     
 def get_magnetic_model(onedata, plot = False, model = "t89"):
-    xgsm = onedata['GSM_X']
+    xgsm = onedata['xgsm']
     if (math.isnan(xgsm)):
         return None 
         
-    ygsm = onedata['GSM_Y']
-    zgsm = onedata['GSM_Z']
-    time = onedata['TIME']
-    if onedata["direction"] == "PARA":
-        dir = 1
-    else:
-        dir = -1
+    ygsm = onedata['ygsm']
+    zgsm = onedata['zgsm']
+    time = onedata['time']
     
-    flLen,xx,yy,zz = calculate_fieldlineLen(time,xgsm,ygsm,zgsm, dir = dir, kp = onedata['KP'], pdyn = onedata['SW_P'], dst = onedata['DST'], imfBz = onedata['IMF_BZ'], imfBy =onedata['IMF_BY'], model = model)
+    flLen,xx,yy,zz = calculate_fieldlineLen(time,xgsm,ygsm,zgsm, dir =  onedata["flag"], kp = onedata['kp'], pdyn = onedata['swp'], dst = onedata['dst'], imfBz = onedata['imfBz'], imfBy =onedata['imfBy'], model = model)
 
     if plot:
         ax=setup_fig()
