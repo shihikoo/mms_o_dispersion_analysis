@@ -128,13 +128,14 @@ def test_trace(data, i, model):
 def calculate_fieldlineLen(time, xgsm,ygsm,zgsm, dir, kp, pdyn, dst, imfBz, imfBy, model):
     ps = geopack.recalc(time)
     if model == 't89': 
-        parmod = int(kp)
+        parmod = min(int(kp+1),7)
     else:
         parmod=[pdyn,dst,imfBz,imfBy,0.,0.,ps, xgsm,ygsm,zgsm]
         if math.isnan(parmod[0]):
             return None, None, None, None
 
-    x,y,z,xx,yy,zz = geopack.trace(xgsm,ygsm,zgsm,dir= dir,rlim=100,r0=0.99999, parmod=parmod, exname = model, inname='igrf', maxloop=10000)    
+    x,y,z,xx,yy,zz = geopack.trace(xgsm,ygsm,zgsm,dir= dir,rlim=100,r0=0.99999, parmod=parmod, exname = model, inname='igrf', maxloop=10000)   
+    
     n = len(xx)    
     flLen = np.sum(np.sqrt(np.square(xx[1:n] - xx[0:n-1]) + np.square(yy[1:n] - yy[0:n-1]) + np.square(zz[1:n] - zz[0:n-1])))
     return flLen,xx,yy,zz
@@ -148,7 +149,7 @@ def get_magnetic_model(onedata, plot = False, model = "t89"):
     ygsm = onedata['ygsm']
     zgsm = onedata['zgsm']
     time = onedata['time']
-    
+
     flLen,xx,yy,zz = calculate_fieldlineLen(time,xgsm,ygsm,zgsm, dir =  onedata["flag"], kp = onedata['kp'], pdyn = onedata['swp'], dst = onedata['dst'], imfBz = onedata['imfBz'], imfBy =onedata['imfBy'], model = model)
 
     if plot:

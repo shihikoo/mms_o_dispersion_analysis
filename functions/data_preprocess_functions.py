@@ -256,7 +256,7 @@ def preprocess_data(data, remove_large_y = False, avg_hour = 6):
     cooked_data['b'] = cooked_data.apply(calculate_B, axis=1)
     
     # parameters for extracting the tplot images filepath
-    cooked_data['o_beam_filepath'] = find_filepath(cooked_data['datetime_str'], dir_name='plots/obeam_day/', file_append_name = 'identification', avg_hour = 6)
+    cooked_data['o_beam_filepath'] = find_filepath(cooked_data['datetime_str'], dir_name='plots/obeam_day/identification/', file_append_name = 'identification', avg_hour = 6)
     # extract south/north hemisphere according to definitions in the identification
     cooked_data = extract_hemisphere(cooked_data)
     
@@ -298,6 +298,7 @@ def aggregate_angle(df):
                                                   , 'storm_phase':'first', 'compression_mode':'first'
                                                   , 'density_o_all':'first', 'velocity_o_all':'first','pressure_o_all':'first'
                                                   , 'density_h_all':'first', 'velocity_h_all':'first','pressure_h_all':'first'
+                                                  , 'v_par_all':'mean','v_perp_all':'mean'
                                                   , 'r':'first', 'region':'first'
                                                   , 'o_beam_filepath':'first'
                                                   , 'pa':'mean','pa_range':'mean','int_flux':'mean'
@@ -323,6 +324,7 @@ def aggregate_energy(df):
                                           , 'storm_phase':'first', 'compression_mode':'first'
                                           , 'density_o_all':'first', 'velocity_o_all':'first','pressure_o_all':'first'
                                           , 'density_h_all':'first', 'velocity_h_all':'first','pressure_h_all':'first'
+                                          , 'v_par_all':'mean','v_perp_all':'mean'
                                           , 'denergy':'mean','r':'first', 'region':'first'
                                           , 'o_beam_filepath':'first'
                                           , 'pa':'mean','pa_range':'mean','int_flux':'mean'
@@ -371,32 +373,6 @@ def preprocess_dispersion_list(dispersion_list, model = 't89'):
         dispersion_list['fllen_anti'] = 0
     if 'fllen_para' not in dispersion_list.columns:
         dispersion_list['fllen_para'] = 0
-    
-#     # datetime extraction
-#     dispersion_list['datetime_str'] = dispersion_list.loc[:,'time'].apply(datetime.datetime.utcfromtimestamp)
-#     dispersion_list['date'] = dispersion_list.loc[:,'datetime_str'].apply(extract_date)   
-#     dispersion_list['year'] = dispersion_list['datetime_str'].dt.to_period('Y')
-                            
-# # storm phases
-#     dispersion_list['storm_phase'] = pd.Categorical(dispersion_list['storm_phase']).rename_categories({0:'nonstorm',1:'prestorm',2:'main phase',3:'fast recovery', 4:'long recovery'})
-    
-#     # extra infomation
-#     dispersion_list['r'] = (dispersion_list['ygsm']**2 + dispersion_list['zgsm']**2).apply(math.sqrt)
-
-# #     dispersion_list['region'] = dispersion_list.apply(identify_region, axis=1)
-
-#     dispersion_list['compression_mode'] = (dispersion_list['datetime_str'] < pd.Timestamp('2019-4-16')) | (dispersion_list['datetime_str'] > pd.Timestamp('2019-8-17'))
-
-#     dispersion_list['b'] = dispersion_list.apply(calculate_B, axis=1)
-    
-#     # parameters for extracting the tplot images filepath
-#     dispersion_list['o_beam_filepath'] = find_filepath(dispersion_list['datetime_str'], dir_name='plots/obeam_day/', file_append_name = 'identification', avg_hour = 6)
-#     # extract south/north hemisphere according to definitions in the identification
-#     dispersion_list = extract_hemisphere(dispersion_list)       
-
-#     remove_outside_magnetosphere(dispersion_list)
-#     #     dispersion_list['p_value'] = dispersion_list.apply(calculate_pvalue,axis = 1)
-# #     dispersion_list['index'] = dispersion_list.index
 
     dispersion_list['model_field_line_length_python'] = dispersion_list.apply(geopack_wrapper.get_magnetic_model, model = model, axis=1)
 
