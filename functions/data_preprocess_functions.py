@@ -194,6 +194,8 @@ def extract_beam_info(mydf, direction):
     mydf.loc[index, 't'] = mydf.loc[index,'t_'+direction]
     mydf.loc[index, 'p'] = mydf.loc[index,'p_'+direction]
     
+    mydf.loc[index, 'n_weighted'] = mydf.loc[index,'n_'+direction+'_weighted']
+    
     mydf.loc[index, 'imfBy'] = mydf.loc[index,'imf_by_'+direction+'_1h']
     mydf.loc[index, 'imfBz'] = mydf.loc[index,'imf_bz_'+direction+'_1h']
     mydf.loc[index, 'swp'] = mydf.loc[index,'sw_p_'+direction+'_1h']
@@ -293,7 +295,7 @@ def aggregate_angle(df):
                                                   , 'ygse':'first', 'zgse':'first', 'mlt':'first', 'l':'first'
                                                   ,  'bx':'first' , 'by_gsm':'first','bz_gsm':'first', 'b':'first'
                                                   , 'dist':'first', 'beta':'first'
-                                                  , 'kp':'first', 'swp':'first', 'swv':'first', 'dst':'first'
+                                                  , 'kp':'first', 'swp':'first', 'swv':'first', 'dst':'first','f107':'first'
                                                   , 'imfBy':'first', 'imfBz':'first' 
                                                   , 'storm_phase':'first', 'compression_mode':'first'
                                                   , 'density_o_all':'first', 'velocity_o_all':'first','pressure_o_all':'first'
@@ -303,7 +305,7 @@ def aggregate_angle(df):
                                                   , 'o_beam_filepath':'first'
                                                   , 'pa':'mean','pa_range':'mean','int_flux':'mean'
                                                   , 'flux':'mean', 'eflux':'sum', 'intergrated_flux':'sum', 'density_est':'sum'
-                                                  , 't':'mean', 'n':'sum','p':'sum' , 'denergy':'mean'
+                                                  , 't':'mean', 'n':'sum','p':'sum' , 'denergy':'mean','n_weighted':'sum'
                                                   , 'b_model':'mean', 'fllen':'mean'}).reset_index()
     agg_data.rename(columns={'xgse':'nbeam'}, inplace = True)
     
@@ -319,7 +321,7 @@ def aggregate_energy(df):
                                           , 'ygse':'first', 'zgse':'first', 'mlt':'first', 'l':'first'
                                           , 'bx':'first' , 'by_gsm':'first','bz_gsm':'first', 'b':'first'
                                           , 'dist':'first', 'beta':'first'
-                                          , 'kp':'first', 'swp':'first', 'swv':'first', 'dst':'first'
+                                          , 'kp':'first', 'swp':'first', 'swv':'first', 'dst':'first','f107':'first'
                                           , 'imfBy':'first', 'imfBz':'first' 
                                           , 'storm_phase':'first', 'compression_mode':'first'
                                           , 'density_o_all':'first', 'velocity_o_all':'first','pressure_o_all':'first'
@@ -329,7 +331,7 @@ def aggregate_energy(df):
                                           , 'o_beam_filepath':'first'
                                           , 'pa':'mean','pa_range':'mean','int_flux':'mean'
                                           , 'flux':'mean', 'eflux':'sum', 'intergrated_flux':'sum', 'density_est':'sum'
-                                          , 't':'mean', 'n':'sum','p':'sum'
+                                          , 't':'mean', 'n':'sum','p':'sum','n_weighted':'sum'
                                         , 'b_model':'mean', 'fllen':'mean'}).reset_index()   
     return(agg_data)
 

@@ -139,3 +139,6 @@ output/field_tracing_plots/
 
 .DS_Store
 *.cdf
+*.svg
+*.png
+*.svg
