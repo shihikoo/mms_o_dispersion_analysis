@@ -226,7 +226,9 @@ def extract_hemisphere(cooked_data):
 def preprocess_data(data, remove_large_y = False, avg_hour = 6):
     cooked_data = data
     
-    cooked_data.rename(columns={'bx_gsm':'bx','gse_x':'xgse', 'gse_y':'ygse','gse_z':'zgse','gsm_x':'xgsm', 'gsm_y':'ygsm','gsm_z':'zgsm', 'o_vpar':'v_par_all', 'o_vperp':'v_perp_all', 'o_n':'density_o_all', 'o_v':'velocity_o_all','o_p':'pressure_o_all', 'h_n':'density_h_all', 'h_v':'velocity_h_all','h_p':'pressure_h_all',}, inplace = True)
+    cooked_data.rename(columns={'bx_gsm':'bx','gse_x':'xgse', 'gse_y':'ygse','gse_z':'zgse','gsm_x':'xgsm', 'gsm_y':'ygsm','gsm_z':'zgsm', 'o_vpar':'v_par_o_all', 
+'o_vperp':'v_perp_o_all', 'h_vperp':'v_perp_h_all','h_vpar':'v_par_h_all',
+'o_n':'density_o_all', 'o_v':'velocity_o_all','o_p':'pressure_o_all', 'h_n':'density_h_all', 'h_v':'velocity_h_all','h_p':'pressure_h_all',}, inplace = True)
     
     if 'b_model' not in cooked_data.columns:
         cooked_data['b_model'] = 0
@@ -300,7 +302,8 @@ def aggregate_angle(df):
                                                   , 'storm_phase':'first', 'compression_mode':'first'
                                                   , 'density_o_all':'first', 'velocity_o_all':'first','pressure_o_all':'first'
                                                   , 'density_h_all':'first', 'velocity_h_all':'first','pressure_h_all':'first'
-                                                  , 'v_par_all':'mean','v_perp_all':'mean'
+                                                  , 'v_par_o_all':'mean','v_perp_o_all':'mean'
+                                                  , 'v_par_h_all':'mean', 'v_perp_h_all':'mean'  
                                                   , 'r':'first', 'region':'first'
                                                   , 'o_beam_filepath':'first'
                                                   , 'pa':'mean','pa_range':'mean','int_flux':'mean'
@@ -326,7 +329,8 @@ def aggregate_energy(df):
                                           , 'storm_phase':'first', 'compression_mode':'first'
                                           , 'density_o_all':'first', 'velocity_o_all':'first','pressure_o_all':'first'
                                           , 'density_h_all':'first', 'velocity_h_all':'first','pressure_h_all':'first'
-                                          , 'v_par_all':'mean','v_perp_all':'mean'
+                                          , 'v_par_o_all':'mean', 'v_perp_o_all':'mean'
+                                          , 'v_par_h_all':'mean', 'v_perp_h_all':'mean'  
                                           , 'denergy':'mean','r':'first', 'region':'first'
                                           , 'o_beam_filepath':'first'
                                           , 'pa':'mean','pa_range':'mean','int_flux':'mean'
